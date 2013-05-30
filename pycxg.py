@@ -238,7 +238,7 @@ class PyCXG(object):
                 self.config.file
             )
             with open(self.config.file, 'w', 1) as fp:
-                fp.write(answer_dict.get('content'))
+                fp.write(answer_dict.get('content').encode('utf-8'))
 
         root_logger.setLevel(orig_loglevel)
 
