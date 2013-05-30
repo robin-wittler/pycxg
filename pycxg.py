@@ -15,7 +15,6 @@ if sys.version_info < (2, 7, 0):
 
 import logging
 import urllib2
-from lxml import etree
 from argparse import Namespace
 from argparse import ArgumentParser
 
@@ -99,6 +98,13 @@ def get_args():
         help='Set the loglevel. Default: %(default)s',
     )
 
+    parser.add_argument(
+        '--get',
+        default=None,
+        help='Get a paste from cxg by a given id.',
+        metavar='CXG_ID'
+    )
+
     config = parser.parse_args(namespace=PyCXGConfig(parser.prog))
     config.loglevel = getattr(logging, config.loglevel.upper(), logging.ERROR)
     return config
@@ -118,7 +124,7 @@ class PyCXG(object):
         )
         self.get_paste_url = urllib2.urlparse.urljoin(
             self.config.url,
-            'paste'
+            'paste/'
         )
 
         self.logger.debug('Initialized with: %r', config)
@@ -150,13 +156,17 @@ class PyCXG(object):
             }
         )
 
+        headers = {
+            'Content-Type': 'application/json',
+            'Content-Length': len(json_content),
+            'ACCEPT': 'application/json'
+        }
+
         request = urllib2.Request(
             self.create_paste_url,
-            json_content
+            json_content,
+            headers=headers
         )
-
-        request.add_header('Content-Type', 'application/json')
-        request.add_header('Content-Length', len(json_content))
 
         self.logger.debug(
             'Sending json to %r: %s', self.create_paste_url, json_content
@@ -166,20 +176,79 @@ class PyCXG(object):
 
         del json_content
 
-        answer_html = etree.fromstringlist(
-            response.read().split('\n'),
-            etree.HTMLParser()
-        )
+        answer_dict = json.load(response)
 
         self.logger.debug(
             'The server answered with code %r and with text:\n\n%s\n\n',
             response.code,
-            etree.tostring(answer_html, pretty_print=True)
+            answer_dict
         )
 
+        root_logger = logging.getLogger('')
+        orig_loglevel = root_logger.level
+        root_logger.setLevel(logging.INFO)
+
+        self.logger.info(
+            'You can find your paste with the id %r at %s',
+            answer_dict.get('id'),
+            answer_dict.get('url')
+        )
+
+        root_logger.setLevel(orig_loglevel)
+
+    def get_paste(self, cxg_id):
+        self.logger.debug('das ist die url: %s', self.get_paste_url)
+        url = urllib2.urlparse.urljoin(self.get_paste_url, cxg_id)
+        headers = {
+            'ACCEPT': 'application/json',
+            'Content-Type': 'application/json',
+        }
+        request = urllib2.Request(url, headers=headers)
+
+        self.logger.debug('Sending request to url: %r', url)
+
+        response = urllib2.urlopen(request)
+
+        answer_dict = json.load(response)
+
+        self.logger.debug(
+            'The server answered with code %r and with text:\n\n%s\n\n',
+            response.code,
+            answer_dict
+        )
+
+        root_logger = logging.getLogger('')
+        orig_loglevel = root_logger.level
+        root_logger.setLevel(logging.INFO)
+
+        self.logger.info(
+            'Getting paste with title %r, format %r and creation date %r',
+            answer_dict.get('title'),
+            answer_dict.get('format'),
+            answer_dict.get('crdate')
+        )
+
+        if self.config.file is None:
+            self.logger.info(
+                'Printing content to stdout:\n\n%s\n\n',
+                answer_dict.get('content')
+            )
+        else:
+            self.logger.info(
+                'Saving content to file %r',
+                self.config.file
+            )
+            with open(self.config.file, 'w', 1) as fp:
+                fp.write(answer_dict.get('content'))
+
+        root_logger.setLevel(orig_loglevel)
+
     def run(self):
-        content = self.read_content_from_file()
-        self.paste_content(content)
+        if not self.config.get is None:
+            self.get_paste(self.config.get)
+        else:
+            content = self.read_content_from_file()
+            self.paste_content(content)
 
     def start(self):
         try:
