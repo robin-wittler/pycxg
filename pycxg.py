@@ -114,7 +114,7 @@ class PyCXG(object):
 
         self.create_paste_url = urllib2.urlparse.urljoin(
             self.config.url,
-            'post'
+            'paste'
         )
         self.get_paste_url = urllib2.urlparse.urljoin(
             self.config.url,
@@ -157,6 +157,10 @@ class PyCXG(object):
 
         request.add_header('Content-Type', 'application/json')
         request.add_header('Content-Length', len(json_content))
+
+        self.logger.debug(
+            'Sending json to %r: %s', self.create_paste_url, json_content
+        )
 
         response = urllib2.urlopen(request, timeout=self.config.timeout)
 
