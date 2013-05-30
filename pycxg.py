@@ -197,7 +197,6 @@ class PyCXG(object):
         root_logger.setLevel(orig_loglevel)
 
     def get_paste(self, cxg_id):
-        self.logger.debug('das ist die url: %s', self.get_paste_url)
         url = urllib2.urlparse.urljoin(self.get_paste_url, cxg_id)
         headers = {
             'ACCEPT': 'application/json',
