@@ -68,8 +68,11 @@ def get_args():
         '--file',
         default=None,
         help=(
-            'Rread the content to paste from a file '
-            '- instead of reading it from stdin (which is the default).'
+            'Read the content to paste from a file '
+            '- instead of reading it from stdin (which is the default). ' +
+            'When used with the --get switch, this option is used to ' +
+            'say where to save the content getting from cxg. If not set ' +
+            'the content will be printed to stdout (which is the default).'
         )
     )
 
@@ -230,7 +233,7 @@ class PyCXG(object):
         if self.config.file is None:
             self.logger.info(
                 'Printing content to stdout:\n\n%s\n\n',
-                answer_dict.get('content')
+                answer_dict.get('content').encode('utf-8')
             )
         else:
             self.logger.info(
